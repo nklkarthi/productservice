@@ -2,8 +2,11 @@ package tests
 
 import (
 	"github.com/gorilla/mux"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 	"net/http"
 	"net/http/httptest"
+	"productservice/db"
 	"productservice/handlers"
 	"productservice/middleware"
 	"productservice/models"
@@ -12,7 +15,19 @@ import (
 	"testing"
 )
 
+func setupTestDB() {
+	// Initialize an in-memory SQLite database for testing
+	var err error
+	db.DB, err = gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+	db.DB.AutoMigrate(&models.Product{})
+}
+
 func TestGetProducts(t *testing.T) {
+	setupTestDB()
+
 	req, _ := http.NewRequest("GET", "/api/products", nil)
 	req.Header.Set("Authorization", "Bearer "+getUserToken())
 	response := executeRequest(req)
@@ -21,6 +36,8 @@ func TestGetProducts(t *testing.T) {
 }
 
 func TestAddProduct(t *testing.T) {
+	setupTestDB()
+
 	var jsonStr = []byte(`{"name":"Product1","price":12.34}`)
 	req, _ := http.NewRequest("POST", "/api/products", strings.NewReader(string(jsonStr)))
 	req.Header.Set("Authorization", "Bearer "+getAdminToken())
@@ -30,6 +47,8 @@ func TestAddProduct(t *testing.T) {
 }
 
 func TestAddProductNonAdmin(t *testing.T) {
+	setupTestDB()
+
 	var jsonStr = []byte(`{"name":"Product1","price":12.34}`)
 	req, _ := http.NewRequest("POST", "/api/products", strings.NewReader(string(jsonStr)))
 	req.Header.Set("Authorization", "Bearer "+getUserToken())
@@ -39,8 +58,10 @@ func TestAddProductNonAdmin(t *testing.T) {
 }
 
 func TestGetProduct(t *testing.T) {
+	setupTestDB()
+
 	// Add a product
-	var jsonStr = []byte(`{"name":"Product2","price":12.34}`)
+	var jsonStr = []byte(`{"name":"Product1","price":12.34}`)
 	addReq, _ := http.NewRequest("POST", "/api/products", strings.NewReader(string(jsonStr)))
 	addReq.Header.Set("Authorization", "Bearer "+getAdminToken())
 	addResponse := executeRequest(addReq)
@@ -48,7 +69,7 @@ func TestGetProduct(t *testing.T) {
 	checkResponseCode(t, http.StatusOK, addResponse.Code)
 
 	// Get the added product
-	req, _ := http.NewRequest("GET", "/api/products/2", nil)
+	req, _ := http.NewRequest("GET", "/api/products/1", nil)
 	req.Header.Set("Authorization", "Bearer "+getUserToken())
 	response := executeRequest(req)
 
@@ -56,6 +77,8 @@ func TestGetProduct(t *testing.T) {
 }
 
 func TestGetProductNotFound(t *testing.T) {
+	setupTestDB()
+
 	req, _ := http.NewRequest("GET", "/api/products/999", nil)
 	req.Header.Set("Authorization", "Bearer "+getUserToken())
 	response := executeRequest(req)
@@ -64,6 +87,8 @@ func TestGetProductNotFound(t *testing.T) {
 }
 
 func TestGetProductsNoAuth(t *testing.T) {
+	setupTestDB()
+
 	req, _ := http.NewRequest("GET", "/api/products", nil)
 	response := executeRequest(req)
 

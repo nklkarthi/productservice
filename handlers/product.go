@@ -16,7 +16,12 @@ func GetProducts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	products := services.GetAllProducts()
+	products, err := services.GetAllProducts()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	if len(products) == 0 {
 		json.NewEncoder(w).Encode(map[string]string{"message": "No products found"})
 		return
@@ -58,9 +63,9 @@ func GetProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	product, err := services.GetProductByID(id)
+	product, err := services.GetProductByID(uint(id))
 	if err != nil {
-		http.Error(w, "Product not found", http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 

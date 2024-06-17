@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"productservice/db"
 	"productservice/handlers"
 	"productservice/middleware"
 
@@ -10,6 +11,8 @@ import (
 )
 
 func main() {
+	db.Init()
+
 	router := mux.NewRouter()
 
 	router.HandleFunc("/api/login", handlers.Login).Methods("POST")

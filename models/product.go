@@ -1,7 +1,11 @@
 package models
 
+import (
+	"gorm.io/gorm"
+)
+
 type Product struct {
-	ID    int     `json:"id"`
-	Name  string  `json:"name"`
-	Price float64 `json:"price"`
+	gorm.Model
+	Name  string  `gorm:"unique;not null"`
+	Price float64 `gorm:"not null"`
 }

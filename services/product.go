@@ -2,35 +2,39 @@ package services
 
 import (
 	"errors"
+	"gorm.io/gorm"
+	"productservice/db"
 	"productservice/models"
 )
 
-var products []models.Product
-var idCounter = 1
-
-func GetAllProducts() []models.Product {
-	return products
+func GetAllProducts() ([]models.Product, error) {
+	var products []models.Product
+	result := db.DB.Find(&products)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return products, nil
 }
 
 func AddProduct(product models.Product) error {
-	// Check for uniqueness of product name
-	for _, p := range products {
-		if p.Name == product.Name {
+	result := db.DB.Create(&product)
+	if result.Error != nil {
+		if result.Error.Error() == "UNIQUE constraint failed: products.name" {
 			return errors.New("the Product name must be unique")
 		}
+		return result.Error
 	}
-
-	product.ID = idCounter
-	idCounter++
-	products = append(products, product)
 	return nil
 }
 
-func GetProductByID(id int) (models.Product, error) {
-	for _, product := range products {
-		if product.ID == id {
-			return product, nil
+func GetProductByID(id uint) (models.Product, error) {
+	var product models.Product
+	result := db.DB.First(&product, id)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return product, errors.New("Product not found")
 		}
+		return product, result.Error
 	}
-	return models.Product{}, errors.New("Product not found")
+	return product, nil
 }
